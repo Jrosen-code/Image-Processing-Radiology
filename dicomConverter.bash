@@ -29,34 +29,41 @@ if [ -z "$(ls -A "$DICOM_DIR")" ]; then
     exit 1
 fi
 
+# Generate timestamp once for the overall statistics file
+timestamp=$(date +'%Y-%m-%d_%H-%M-%S')
+stats_file="${OUTPUT_DIR}/${timestamp}_statistics_summary.txt"
+
 # Iterate over each DICOM file in the directory
 for dcm_file in "$DICOM_DIR"/*; do
   # Convert DICOM to NIfTI using dcm2niix
-  #if using on another machine change dcm2niix command (written on windows)
   ./dcm2niix.exe -b y -ba n -o "$OUTPUT_DIR" "$dcm_file"
 
   # Get the base filename using the first field before the first underscore
   base_name=$(basename "$dcm_file" | cut -d'_' -f1)
 
-   echo "Processing base name: $base_name"
+  echo "Processing base name: $base_name"
 
   # Find the corresponding NIfTI and JSON files in the output directory
   nii_file=$(find "$OUTPUT_DIR" -name "${base_name}*.nii" | head -n 1)
   json_file=$(find "$OUTPUT_DIR" -name "${base_name}*.json" | head -n 1)
 
-
   # Check if both files exist
   if [[ -f "$nii_file" && -f "$json_file" ]]; then
-    echo "Statistics for $base_name:" >> "${OUTPUT_DIR}/statistics_summary.txt"
+    echo "Statistics for $base_name:" >> "$stats_file"
 
-    # Extract and write desired statistics (i.e Patient Age, Acquisition Date/Time, etc)
-    # if on different machine change jq command call (written on windows)
-    ./jq.exe -r '"Patient Age: \(.PatientAge)\nMagnetic Field Strength: \(.MagneticFieldStrength)\nAcquisition Date/Time: \(.AcquisitionDateTime)\nSeries Description: \(.SeriesDescription)"' "$json_file" >> "${OUTPUT_DIR}/statistics_summary.txt"
-    echo "" >> "${OUTPUT_DIR}/statistics_summary.txt"
+    # Extract and append desired statistics (i.e., Patient Age, Acquisition Date/Time, etc.)
+    ./jq.exe -r '"Patient Age: \(.PatientAge)\nMagnetic Field Strength: \(.MagneticFieldStrength)\nAcquisition Date/Time: \(.AcquisitionDateTime)\nSeries Description: \(.SeriesDescription)"' "$json_file" >> "$stats_file"
 
+    # Add an empty line for readability between entries
+    echo "" >> "$stats_file"
+
+    echo "Conversion and statistics extraction for $base_name complete. Stats appended to: $stats_file"
   else
     echo "No matching JSON or NIfTI file found for $base_name."
   fi
 done
 
-echo "Conversion and statistics extraction complete. Check ${OUTPUT_DIR}/statistics_summary.txt for details."
+# Final message
+echo "Conversion and statistics extraction complete for all files. Check the compiled statistics in: $stats_file"
+
+
