@@ -15,9 +15,8 @@ Ensure that `dcm2niix` and `jq` are installed and accessible in the directory wh
 
 To run the script, use the following command:
 
-\`\`\`bash
+
 bash script_name.bash -i input_directory -o output_directory
-\`\`\`
 
 ### Command-Line Arguments
 
